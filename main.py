@@ -1,6 +1,5 @@
 import sds011
 import machine
-import time
 import esp
 
 if machine.reset_cause() == machine.DEEPSLEEP_RESET:
@@ -9,7 +8,6 @@ if machine.reset_cause() == machine.DEEPSLEEP_RESET:
 READ_SECONDS = 55
 SLEEP_SECONDS = 5
 
-sds011.wake()
-sds011.read(READ_SECONDS * 1000);
-sds011.sleep();
+sds011.set_dutycycle(1)
+sds011.read();
 # esp.deepsleep(SLEEP_SECONDS * 1000000)

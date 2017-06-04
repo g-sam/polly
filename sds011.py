@@ -23,26 +23,47 @@ import utime as time
 uart = machine.UART(0, 9600)
 uart.init(9600, bits=8, parity=None, stop=1)
 
+CMDS = {'SET': b'\x01',
+        'GET': b'\x00',
+        'DUTYCYCLE': b'\x08',
+        'SLEEPWAKE': b'\x06'}
+
+def make_command(cmd, mode, param):
+    header = b'\xaa\xb4'
+    padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
+    checksum = chr(( ord(cmd) + ord(mode) + ord(param) + 255 + 255) % 256)
+    tail = b'\xab'
+    return header + cmd + mode + param + padding + bytes(checksum, 'utf8') + tail
+
+def no_response():
+    if (uart.read(1) == b'\xaa'):
+        if (uart.read(1) == b'\xc5'):
+            return False
+    time.sleep_ms(500)
+    return True
+
+def set_dutycycle(rest_mins):
+    global uart
+    cmd = make_command(CMDS['DUTYCYCLE'], CMDS['SET'], chr(rest_mins))
+    while no_response():
+        print('Setting sds011 to read every', rest_mins, 'minutes:', cmd)
+        uart.write(cmd)
+    print('sds011 duty cycle set!')
+
 def wake():
     global uart
-    while uart.read(1) == None:
-        print('Sending wake command to sds011')
-        cmd = b'\xaa\xb4\x06\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x06\xab'
+    cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(1))
+    while no_response():
+        print('Sending wake command to sds011:', cmd)
         uart.write(cmd)
     print('sds011 woke up!')
 
 def sleep():
     global uart
-    AWAKE = True
-    while AWAKE:
-        print('Sending sleep command to sds011')
-        cmd = b'\xaa\xb4\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x05\xab'
+    cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(0))
+    while no_response():
+        print('Sending sleep command to sds011:', cmd)
         uart.write(cmd)
-        header = uart.read(1)
-        if header == b'\xaa':
-            command = uart.read(1)
-            if command == b'\xc5':
-                AWAKE = False
     print('sds011 successfully put to sleep')
 
 def process_packet(packet):
@@ -65,21 +86,20 @@ def process_packet(packet):
         print('Problem decoding packet:', e)
         sys.print_exception(e)
 
-def read(allowed_time):
+def read(allowed_time=0):
     global uart
     print('Reading from sds011 for', (allowed_time / 1000), 'secs')
     start_time = time.ticks_ms()
-    SHOULD_READ = True
-    while SHOULD_READ:
+    delta_time = 0
+    while (delta_time <= allowed_time):
         try:
-            delta_time = time.ticks_diff(time.ticks_ms(), start_time)
-            if (delta_time > allowed_time): SHOULD_READ = False
             header = uart.read(1)
             if header == b'\xaa':
                 command = uart.read(1)
                 if command == b'\xc0':
                     packet = uart.read(8)
                     process_packet(packet)
+            delta_time = time.ticks_diff(time.ticks_ms(), start_time) if allowed_time else 0
         except Exception as e:
             print('Problem attempting to read:', e)
             sys.print_exception(e)

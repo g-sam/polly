@@ -3,6 +3,7 @@
 #esp.osdebug(None)
 import gc
 import webrepl
+import utime as time
 gc.collect()
 
 print('\nbooting...')
@@ -27,7 +28,8 @@ def do_connect():
             pass
     print('connected at:', sta_if.ifconfig())
 
-
 do_connect()
-
 webrepl.start()
+time.sleep(1)
+print('Booted!')
+
