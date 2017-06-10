@@ -35,38 +35,39 @@ def make_command(cmd, mode, param):
     tail = b'\xab'
     return header + cmd + mode + param + padding + bytes(checksum, 'utf8') + tail
 
-def no_response():
+def confirm_response(confirmation):
     if (uart.read(1) == b'\xaa'):
         if (uart.read(1) == b'\xc5'):
-            return False
-    time.sleep_ms(500)
-    return True
+            print(confirmation)
 
+# sensor wakes for 60 secs before issuing measurment
 def set_dutycycle(rest_mins):
     global uart
     cmd = make_command(CMDS['DUTYCYCLE'], CMDS['SET'], chr(rest_mins))
-    while no_response():
-        print('Setting sds011 to read every', rest_mins, 'minutes:', cmd)
-        uart.write(cmd)
-    print('sds011 duty cycle set!')
+    print('Setting sds011 to read every', rest_mins, 'minutes:', cmd)
+    uart.write(cmd)
+    time.sleep_ms(1000)
+    read(2)
 
 def wake():
     global uart
     cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(1))
-    while no_response():
-        print('Sending wake command to sds011:', cmd)
-        uart.write(cmd)
-    print('sds011 woke up!')
+    print('Sending wake command to sds011:', cmd)
+    uart.write(cmd)
+    time.sleep_ms(12000)
+    read(2)
 
 def sleep():
     global uart
     cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(0))
-    while no_response():
-        print('Sending sleep command to sds011:', cmd)
-        uart.write(cmd)
-    print('sds011 successfully put to sleep')
+    print('Sending sleep command to sds011:', cmd)
+    uart.write(cmd)
+    time.sleep_ms(2000)
 
-def process_packet(packet):
+def process_reply(packet):
+    print('Reply received:', packet)
+
+def process_measurement(packet):
     try:
         print('\nPacket:', packet)
         *data, checksum, tail = struct.unpack('<HHBBBs', packet)
@@ -88,17 +89,19 @@ def process_packet(packet):
 
 def read(allowed_time=0):
     global uart
-    print('Reading from sds011 for', (allowed_time / 1000), 'secs')
     start_time = time.ticks_ms()
     delta_time = 0
-    while (delta_time <= allowed_time):
+    while (delta_time <= allowed_time * 1000):
         try:
             header = uart.read(1)
             if header == b'\xaa':
                 command = uart.read(1)
                 if command == b'\xc0':
                     packet = uart.read(8)
-                    process_packet(packet)
+                    process_measurement(packet)
+                elif command == b'\xc5':
+                    packet = uart.read(8)
+                    process_reply(packet)
             delta_time = time.ticks_diff(time.ticks_ms(), start_time) if allowed_time else 0
         except Exception as e:
             print('Problem attempting to read:', e)
