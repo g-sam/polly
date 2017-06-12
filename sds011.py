@@ -1,5 +1,5 @@
 """
-Reply format. See http://cl.ly/ekot
+Reading format. See http://cl.ly/ekot
 
 0 Header   '\xaa'
 1 Command  '\xc0'
@@ -20,8 +20,10 @@ import mqtt
 import sys
 import utime as time
 
-uart = machine.UART(0, 9600)
-uart.init(9600, bits=8, parity=None, stop=1)
+def init_uart(x):
+    uart = machine.UART(x, 9600)
+    uart.init(9600, bits=8, parity=None, stop=1)
+    return uart
 
 CMDS = {'SET': b'\x01',
         'GET': b'\x00',
@@ -35,34 +37,24 @@ def make_command(cmd, mode, param):
     tail = b'\xab'
     return header + cmd + mode + param + padding + bytes(checksum, 'utf8') + tail
 
-def confirm_response(confirmation):
-    if (uart.read(1) == b'\xaa'):
-        if (uart.read(1) == b'\xc5'):
-            print(confirmation)
-
-# sensor wakes for 60 secs before issuing measurment
+# sensor wakes for 60 secs before issuing measurement
 def set_dutycycle(rest_mins):
-    global uart
+    uart = init_uart(1)
     cmd = make_command(CMDS['DUTYCYCLE'], CMDS['SET'], chr(rest_mins))
     print('Setting sds011 to read every', rest_mins, 'minutes:', cmd)
     uart.write(cmd)
-    time.sleep_ms(1000)
-    read(2)
 
 def wake():
-    global uart
+    uart = init_uart(1)
     cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(1))
     print('Sending wake command to sds011:', cmd)
     uart.write(cmd)
-    time.sleep_ms(12000)
-    read(2)
 
 def sleep():
-    global uart
+    uart = init_uart(1)
     cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(0))
     print('Sending sleep command to sds011:', cmd)
     uart.write(cmd)
-    time.sleep_ms(2000)
 
 def process_reply(packet):
     print('Reply received:', packet)
@@ -88,7 +80,7 @@ def process_measurement(packet):
         sys.print_exception(e)
 
 def read(allowed_time=0):
-    global uart
+    uart = init_uart(0)
     start_time = time.ticks_ms()
     delta_time = 0
     while (delta_time <= allowed_time * 1000):
