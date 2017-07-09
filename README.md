@@ -29,7 +29,7 @@ As currently programmed, the sensor will loop between sleeping (with the Wemos i
 
 ## Going outdoors
 
-A downside of the current implementation is that the SDS011 draws a relatively helft 4ma while asleep. Some possible solutions for increasing battery life:
+A downside of the current implementation is that the SDS011 draws a relatively hefty 4ma while asleep. Some possible solutions for increasing battery life:
 1) Use something (relay? MOSFET?) between the Wemos and the SDS011 to cut the connection before entering deep sleep. 
 2) Hook the whole circuit to a MOSFET controlled by an ATiny85 or similar. This would provide better efficiency (because we would be sleeping the ATiny85 instead of the Wemos, which would be completely powered down), but is more complicated. 
 
@@ -38,18 +38,18 @@ Let's evaluate these options assuming a 10 minute wake interval, 30 sec working 
  - Wemos consumes 150mA on average when awake or 5mA in light sleep
  - Deepsleep on Wemos consumes 2/3 times more than on esp8266 because of the USB-TTL converter: probably equates to around 0.1mA in total 
  - At 1MHz the ATTiny85 consumes 2.5mA (awake) or 0.0005mA (asleep)
- - 3 AA batteries providing 7200mAh total
+ - 10000mAh usb battery pack (e.g. [this one](https://www.amazon.co.uk/Puridea-Portable-External-Blackberry-Valentines/dp/B0109PYRE0/ref=sr_1_4?s=electronics&ie=UTF8&qid=1499622375&sr=1-4&keywords=10000+mah+usb+power))
  - 70% efficiency 
 
-As is: (7200 * 60 * 0.7) / (3 * (70 + 150) + 57 * (0.1 + 4) = 338 hours or 14 days 
+As is: (10000 * 60 * 0.7) / (3 * (70 + 150) + 57 * (0.1 + 4) = 470 hours or 20 days 
 
-Without ATTiny but with relay: (7200 * 60 * 0.7) / (3 * (70 + 150) + 57 * 0.1) = 454 hours or 19 days 
+Without ATTiny but with relay: (10000 * 60 * 0.7) / (3 * (70 + 150) + 57 * 0.1) = 631 hours or 26 days 
 
-With ATTiny: (7200 * 60 * 0.7) / (3 * (70 + 150 + 2.5) + 57 * 0.0005) = 453 hours 
+With ATTiny: (10000 * 60 * 0.7) / (3 * (70 + 150 + 2.5) + 57 * 0.0005) = 629 hours 
 
-What about using the ATTiny and turning on the Wemos only for last 7 secs of 30sec working period (say, 0.7 mins / hour @ 200mA)? (7200 * 60 * 0.7) / (3 * (70 + 2.5) + 0.7 * 200 + 57 * 0.0005) = 845 hours or 35 days.
+What about using the ATTiny and turning on the Wemos only for last 7 secs of 30sec working period (say, 0.7 mins / hour @ 200mA)? (10000 * 60 * 0.7) / (3 * (70 + 2.5) + 0.7 * 200 + 57 * 0.0005) = 1174 hours or 49 days.
 
-If the Wemos can request time and pass it to ATTiny85, we can sleep 6 hours at night as well, bringing us up to around 1120 hours. 
+If the Wemos can request time and pass it to ATTiny85, we can sleep 6 hours at night as well, bringing us up to around 60 days. 
 
 ## Portability
 
@@ -57,4 +57,4 @@ Another desideratum is the ability pair with a phone and transmit on the fly, or
 
 Storing: by default we get 6 bytes of data every second. After 30 mins that's 11kb. The Wemos has 96 kb of data RAM so we should be fine... We could also move into the 4 mb of flash, but must be careful as it is limited to 100,000 write/erase cycles.
 
-For gps data we need the phone. It should be possible for the phone to connect to the Wemos set up as an access point. Battery life on wifi might be expected to be 7200 * 0.7 / 200 = 25 hours. But it might make more sense to move to the ESP32 (which also has bluetooth) for this. 
+For gps data we need the phone. It should be possible for the phone to connect to the Wemos set up as an access point. Battery life on wifi might be expected to be 10000 * 0.7 / 200 = 35 hours. But it might make more sense to move to the ESP32 (which also has bluetooth) for this. 
