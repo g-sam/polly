@@ -58,3 +58,8 @@ Another desideratum is the ability pair with a phone and transmit on the fly, or
 Storing: by default we get 6 bytes of data every second. After 30 mins that's 11kb. The Wemos has 96 kb of data RAM so we should be fine... We could also move into the 4 mb of flash, but must be careful as it is limited to 100,000 write/erase cycles.
 
 For gps data we need the phone. It should be possible for the phone to connect to the Wemos set up as an access point. Battery life on wifi might be expected to be 10000 * 0.7 / 200 = 35 hours. But it might make more sense to move to the ESP32 (which also has bluetooth) for this. 
+
+## Points to remember
+
+- Maximum sleep time is [71 minutes](https://github.com/micropython/micropython/issues/2342)
+- RTC drift is up to 5 mins / hour

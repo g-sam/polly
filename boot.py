@@ -12,7 +12,7 @@ def do_connect():
     import network
 
     file = open('data.txt')
-    pw = file.read().strip()
+    [ssid, pw] = file.read().strip().split('\n')
     file.close()
 
     ap_if = network.WLAN(network.AP_IF)
@@ -21,15 +21,15 @@ def do_connect():
 
     sta_if = network.WLAN(network.STA_IF)
     if not sta_if.isconnected():
-        # print('connecting to network...')
+        print('connecting to network...')
         sta_if.active(True)
-        sta_if.connect('Bam-net', pw)
+        sta_if.connect(ssid, pw)
         while not sta_if.isconnected():
             pass
-    # print('connected at:', sta_if.ifconfig())
+    print('connected at:', sta_if.ifconfig())
 
 do_connect()
 webrepl.start()
-time.sleep(1)
-# print('Booted!')
+time.sleep(2)
+print('Booted!')
 

@@ -16,7 +16,6 @@ Reading format. See http://cl.ly/ekot
 
 import machine
 import ustruct as struct
-import mqtt
 import sys
 import utime as time
 
@@ -59,7 +58,7 @@ def sleep():
 def process_reply(packet):
     print('Reply received:', packet)
 
-def process_measurement(packet):
+def process_measurement(packet, mqtt):
     try:
         print('\nPacket:', packet)
         *data, checksum, tail = struct.unpack('<HHBBBs', packet)
@@ -80,6 +79,7 @@ def process_measurement(packet):
         sys.print_exception(e)
 
 def read(allowed_time=0):
+    import mqtt
     uart = init_uart(0)
     start_time = time.ticks_ms()
     delta_time = 0
@@ -90,7 +90,7 @@ def read(allowed_time=0):
                 command = uart.read(1)
                 if command == b'\xc0':
                     packet = uart.read(8)
-                    process_measurement(packet)
+                    process_measurement(packet, mqtt)
                 elif command == b'\xc5':
                     packet = uart.read(8)
                     process_reply(packet)

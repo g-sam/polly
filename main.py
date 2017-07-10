@@ -1,17 +1,26 @@
-import sds011
 import machine
 import esp
 import utime as time
 
-if machine.reset_cause() == machine.DEEPSLEEP_RESET:
-    print('Woke from a deep sleep')
-
-READ_SECONDS = 20
+SDS011_INIT_SECONDS = 23
+READ_SECONDS = 7
 SLEEP_SECONDS = 60
-DUTYCYCLE_REST_MINS = 0
 
-# sds011.set_dutycycle(DUTYCYCLE_REST_MINS)
-sds011.wake()
+rtc = machine.RTC()
+
+print('woken with task', rtc.memory())
+
+if rtc.memory() == b'init':
+    sds011.wake()
+    rtc.memory(b'read')
+    print('going to sleep, will wake to ', rtc.memory())
+    esp.deepsleep(SDS011_INIT_SECONDS * 1000000)
+    time.sleep(1)
+
+rtc.memory(b'init')
+import sds011
 sds011.read(READ_SECONDS)
 sds011.sleep()
+print('going to sleep, will wake to ', rtc.memory())
 esp.deepsleep(SLEEP_SECONDS * 1000000)
+
