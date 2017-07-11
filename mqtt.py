@@ -1,17 +1,14 @@
 from umqtt.robust import MQTTClient
-import ubinascii as binascii
-import machine
 import ujson as json
 import logging
+import config
 
 log = logging.getLogger('mqtt')
 
-MQTT_CONFIG = { 'broker': '192.168.1.10',
-               'client_id': b'polly_' + binascii.hexlify(machine.unique_id()) }
-
-MQTT_CONFIG.update({'topic': b'polly/' + MQTT_CONFIG['client_id']})
+MQTT_CONFIG = config.MQTT_CONFIG
 
 client = MQTTClient(MQTT_CONFIG['client_id'], MQTT_CONFIG['broker'])
+
 client.connect()
 
 log.debug('MQTT client connected to broker %s', MQTT_CONFIG['broker'])
