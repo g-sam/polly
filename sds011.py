@@ -18,6 +18,9 @@ import machine
 import ustruct as struct
 import sys
 import utime as time
+import logging
+
+log = logging.getLogger('sds011')
 
 def init_uart(x):
     uart = machine.UART(x, 9600)
@@ -40,27 +43,27 @@ def make_command(cmd, mode, param):
 def set_dutycycle(rest_mins):
     uart = init_uart(1)
     cmd = make_command(CMDS['DUTYCYCLE'], CMDS['SET'], chr(rest_mins))
-    print('Setting sds011 to read every', rest_mins, 'minutes:', cmd)
+    log.debug('Setting sds011 to read every %s mins: %s', rest_mins, cmd)
     uart.write(cmd)
 
 def wake():
     uart = init_uart(1)
     cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(1))
-    print('Sending wake command to sds011:', cmd)
+    log.debug('Sending wake command to sds011: %s', cmd)
     uart.write(cmd)
 
 def sleep():
     uart = init_uart(1)
     cmd = make_command(CMDS['SLEEPWAKE'], CMDS['SET'], chr(0))
-    print('Sending sleep command to sds011:', cmd)
+    log.debug('Sending sleep command to sds011: %s', cmd)
     uart.write(cmd)
 
 def process_reply(packet):
-    print('Reply received:', packet)
+    log.debug('Reply received:', packet)
 
 def process_measurement(packet, mqtt):
     try:
-        print('\nPacket:', packet)
+        log.debug('\nPacket:', packet)
         *data, checksum, tail = struct.unpack('<HHBBBs', packet)
         pm25 = data[0]/10.0
         pm10 = data[1]/10.0
@@ -68,14 +71,14 @@ def process_measurement(packet, mqtt):
         checksum_OK = checksum == (sum(data) % 256)
         tail_OK = tail == b'\xab'
         packet_status = 'OK' if (checksum_OK and tail_OK) else 'NOK'
-        print('PM 2.5:', pm25, '\nPM 10:', pm10, '\nStatus:', packet_status)
+        log.debug('PM 2.5:', pm25, '\nPM 10:', pm10, '\nStatus:', packet_status)
         mqtt.publish({
             'pm25': pm25,
             'pm10': pm10,
             'status': packet_status
         })
     except Exception as e:
-        print('Problem decoding packet:', e)
+        log.error('Problem decoding packet: %s', e)
         sys.print_exception(e)
 
 def read(allowed_time=0):
@@ -96,5 +99,5 @@ def read(allowed_time=0):
                     process_reply(packet)
             delta_time = time.ticks_diff(time.ticks_ms(), start_time) if allowed_time else 0
         except Exception as e:
-            print('Problem attempting to read:', e)
+            log.error('Problem attempting to read: %s', e)
             sys.print_exception(e)
